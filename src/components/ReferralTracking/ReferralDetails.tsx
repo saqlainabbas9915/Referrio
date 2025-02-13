@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Briefcase, User, Clock, Phone, Mail, DollarSign, Linkedin, FileText } from 'lucide-react';
+import { X, Calendar, Briefcase, Clock, Phone, Mail, DollarSign, Linkedin, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabaseClient';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Job } from '../types';
 import JobCard from '../components/JobCard';
 import { Search } from 'lucide-react';

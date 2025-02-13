@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import { Job } from '../types';
 import { MapPin, Building, Calendar } from 'lucide-react';
 

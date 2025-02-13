@@ -1,96 +1,131 @@
-import React, { useState, useMemo } from 'react';
-import { useReferralData } from '../hooks/useReferralData';
-import { ReferralCard } from '../components/ReferralTracking/ReferralCard';
-import { ReferralFilters } from '../components/ReferralTracking/ReferralFilters';
-import { NewReferralModal } from '../components/ReferralTracking/NewReferralModal';
-import { AnalyticsDashboard } from '../components/Analytics/AnalyticsDashboard';
+import React, { useState, useEffect } from 'react';
 import { Loading } from '../components/common/Loading';
-import { Plus } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface ReferralStats {
+  total: number;
+  pending: number;
+  accepted: number;
+  rejected: number;
+  monthlyData: {
+    month: string;
+    count: number;
+  }[];
+}
 
 export const ReferralDashboard: React.FC = () => {
-  const [showNewReferralModal, setShowNewReferralModal] = useState(false);
-  const { referrals, analytics, loading, refetch } = useReferralData();
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
+  const [stats, setStats] = useState<ReferralStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredAndSortedReferrals = useMemo(() => {
-    let filtered = [...(referrals || [])];
-    
-    // Apply status filter
-    if (statusFilter) {
-      filtered = filtered.filter(ref => 
-        ref.status.toLowerCase() === statusFilter.toLowerCase()
-      );
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      // Fetch all referrals to calculate stats
+      const { data: referrals, error: referralsError } = await supabase
+        .from('referrals')
+        .select('*');
+
+      if (referralsError) throw referralsError;
+
+      // Calculate stats from referrals
+      const total = referrals?.length || 0;
+      const pending = referrals?.filter(r => r.status === 'pending').length || 0;
+      const accepted = referrals?.filter(r => r.status === 'accepted').length || 0;
+      const rejected = referrals?.filter(r => r.status === 'rejected').length || 0;
+
+      // Calculate monthly data
+      const monthlyData = referrals?.reduce((acc: any[], referral) => {
+        const month = new Date(referral.created_at).toLocaleString('default', { month: 'long' });
+        const existingMonth = acc.find(m => m.month === month);
+        if (existingMonth) {
+          existingMonth.count += 1;
+        } else {
+          acc.push({ month, count: 1 });
+        }
+        return acc;
+      }, []) || [];
+
+      setStats({
+        total,
+        pending,
+        accepted,
+        rejected,
+        monthlyData
+      });
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+      setError('Failed to load dashboard statistics');
+    } finally {
+      setLoading(false);
     }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'oldest':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'name':
-          return a.candidate_name.localeCompare(b.candidate_name);
-        case 'newest':
-        default:
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-    });
-
-    return filtered;
-  }, [referrals, statusFilter, sortBy]);
+  };
 
   if (loading) {
     return <Loading />;
   }
 
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded-md">
+        {error}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Referral Dashboard</h1>
-        <button 
-          onClick={() => setShowNewReferralModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={20} className="mr-2" />
-          New Referral
-        </button>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h1>
 
-      {analytics && (
-        <div className="mb-8">
-          <AnalyticsDashboard 
-            data={analytics}
-            historicalData={analytics.historical_data}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900">Total Referrals</h3>
+          <p className="text-3xl font-bold text-blue-600">{stats?.total || 0}</p>
         </div>
-      )}
-
-      <div className="mt-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Your Referrals</h2>
-          <ReferralFilters
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-          />
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900">Pending</h3>
+          <p className="text-3xl font-bold text-yellow-600">{stats?.pending || 0}</p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAndSortedReferrals.map((referral) => (
-            <ReferralCard key={referral.id} referral={referral} />
-          ))}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900">Accepted</h3>
+          <p className="text-3xl font-bold text-green-600">{stats?.accepted || 0}</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900">Rejected</h3>
+          <p className="text-3xl font-bold text-red-600">{stats?.rejected || 0}</p>
         </div>
       </div>
 
-      {showNewReferralModal && (
-        <NewReferralModal
-          onClose={() => setShowNewReferralModal(false)}
-          onSuccess={() => {
-            refetch();
-          }}
-        />
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Referrals</h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats?.monthlyData || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Success Rate</h3>
+          <div className="flex flex-col items-center justify-center h-80">
+            <p className="text-6xl font-bold text-green-600">
+              {stats ? Math.round((stats.accepted / stats.total) * 100) : 0}%
+            </p>
+            <p className="text-gray-500 mt-2">Acceptance Rate</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }; 

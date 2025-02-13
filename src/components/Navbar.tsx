@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserCircle, BriefcaseIcon, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';

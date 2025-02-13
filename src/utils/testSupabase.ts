@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 
 export const testSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
       .select('*')
       .limit(1);
