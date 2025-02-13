@@ -1,68 +1,82 @@
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, parseISO } from 'date-fns';
 
-interface AnalyticsProps {
+interface AnalyticsDashboardProps {
   data: {
     total_referrals: number;
     successful_referrals: number;
-    total_bonus_paid: number;
-    success_rate: number;
-    avg_time_to_hire: number;
+    pending_referrals: number;
   };
-  historicalData: Array<{
+  historicalData: {
     date: string;
-    referrals: number;
-    hires: number;
-  }>;
+    count: number;
+  }[];
 }
 
-export const AnalyticsDashboard: React.FC<AnalyticsProps> = ({ data, historicalData }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ data, historicalData }) => {
+  const formatDate = (dateStr: string) => {
+    return format(parseISO(dateStr), 'MMM d');
+  };
+
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-6">Referral Analytics</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-sm text-gray-600">Total Referrals</h3>
-          <p className="text-2xl font-bold text-blue-600">{data.total_referrals}</p>
-        </div>
-        
-        <div className="p-4 bg-green-50 rounded-lg">
-          <h3 className="text-sm text-gray-600">Success Rate</h3>
-          <p className="text-2xl font-bold text-green-600">
-            {(data.success_rate * 100).toFixed(1)}%
-          </p>
-        </div>
-        
-        <div className="p-4 bg-purple-50 rounded-lg">
-          <h3 className="text-sm text-gray-600">Total Bonus Paid</h3>
-          <p className="text-2xl font-bold text-purple-600">
-            ${data.total_bonus_paid.toLocaleString()}
-          </p>
-        </div>
-        
-        <div className="p-4 bg-orange-50 rounded-lg">
-          <h3 className="text-sm text-gray-600">Avg Time to Hire</h3>
-          <p className="text-2xl font-bold text-orange-600">
-            {data.avg_time_to_hire} days
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="Total Referrals"
+          value={data.total_referrals}
+          description="All time referrals"
+        />
+        <StatCard
+          title="Successful Referrals"
+          value={data.successful_referrals}
+          description="Candidates hired"
+          className="text-green-600"
+        />
+        <StatCard
+          title="Pending Referrals"
+          value={data.pending_referrals}
+          description="Awaiting response"
+          className="text-yellow-600"
+        />
       </div>
 
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-4">Referral Trends</h3>
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4">Referral Trends</h3>
         <div className="h-[300px]">
-          <LineChart width={800} height={300} data={historicalData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="referrals" stroke="#2563eb" />
-            <Line type="monotone" dataKey="hires" stroke="#16a34a" />
-          </LineChart>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={historicalData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={formatDate}
+                interval={6}
+              />
+              <YAxis allowDecimals={false} />
+              <Tooltip 
+                labelFormatter={formatDate}
+                formatter={(value: number) => [`${value} referrals`, 'Count']}
+              />
+              <Bar dataKey="count" fill="#3B82F6" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
   );
-}; 
+};
+
+interface StatCardProps {
+  title: string;
+  value: number;
+  description: string;
+  className?: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, description, className = "text-blue-600" }) => (
+  <div className="bg-white p-6 rounded-lg shadow">
+    <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+    <p className={`text-3xl font-bold ${className}`}>{value}</p>
+    <p className="text-sm text-gray-600">{description}</p>
+  </div>
+); 

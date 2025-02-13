@@ -1,46 +1,78 @@
-import React from 'react';
-import { formatDistance } from 'date-fns';
+import React, { useState } from 'react';
+import { Calendar, Briefcase } from 'lucide-react';
+import { format } from 'date-fns';
+import { ReferralDetails } from './ReferralDetails';
 
 interface ReferralCardProps {
   referral: {
+    id: string;
     candidate_name: string;
-    job_title: string;
+    position: string;
     status: string;
-    application_date: string;
-    referral_bonus: number;
-    last_status_update: string;
+    created_at: string;
+    phone?: string;
+    linkedin_url?: string;
+    expected_salary?: string;
+    years_of_experience?: number;
+    resume_url?: string;
   };
 }
 
 export const ReferralCard: React.FC<ReferralCardProps> = ({ referral }) => {
-  const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    reviewed: 'bg-blue-100 text-blue-800',
-    interviewed: 'bg-purple-100 text-purple-800',
-    hired: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
+  const [showDetails, setShowDetails] = useState(false);
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'accepted':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
-    <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-semibold text-lg">{referral.candidate_name}</h3>
-          <p className="text-gray-600">{referral.job_title}</p>
+    <>
+      <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {referral.candidate_name}
+            </h3>
+            <div className="flex items-center text-gray-600 text-sm">
+              <Briefcase size={16} className="mr-2" />
+              <span>{referral.position}</span>
+            </div>
+          </div>
+          <span 
+            className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(referral.status)}`}
+          >
+            {referral.status}
+          </span>
         </div>
-        <span className={`px-3 py-1 rounded-full text-sm ${statusColors[referral.status]}`}>
-          {referral.status}
-        </span>
-      </div>
-      <div className="mt-4 text-sm text-gray-500">
-        <p>Applied: {formatDistance(new Date(referral.application_date), new Date(), { addSuffix: true })}</p>
-        <p>Last update: {formatDistance(new Date(referral.last_status_update), new Date(), { addSuffix: true })}</p>
-      </div>
-      {referral.referral_bonus > 0 && (
-        <div className="mt-2 text-green-600 font-medium">
-          Potential bonus: ${referral.referral_bonus}
+
+        <div className="flex items-center text-gray-500 text-sm mb-4">
+          <Calendar size={16} className="mr-2" />
+          <span>{format(new Date(referral.created_at), 'MMM dd, yyyy')}</span>
         </div>
+
+        <button 
+          onClick={() => setShowDetails(true)} 
+          className="w-full text-center text-blue-600 hover:text-blue-700 hover:bg-blue-50 py-2 rounded-md transition-colors"
+        >
+          View Details
+        </button>
+      </div>
+
+      {showDetails && (
+        <ReferralDetails
+          referral={referral}
+          onClose={() => setShowDetails(false)}
+        />
       )}
-    </div>
+    </>
   );
 }; 
